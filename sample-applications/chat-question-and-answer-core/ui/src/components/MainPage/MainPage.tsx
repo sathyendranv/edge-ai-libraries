@@ -24,6 +24,11 @@ const StyledGrid = styled(Grid)`
   @media (min-width: 2300px) {
     grid-template-columns: 30rem auto;
   }
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
+  }
   padding-inline: 0;
   flex-grow: 1;
   max-inline-size: 100%;

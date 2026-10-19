@@ -19,7 +19,7 @@ const DrawerWrapper = styled.div<{ $isOpen: boolean }>`
   top: 0;
   right: 0;
   height: 100%;
-  width: 450px;
+  width: min(450px, 100vw);
   background-color: var(--color-white);
   background-color: var(--color-white);
   box-shadow: -2px 0 5px var(--color-data-source-bs);

@@ -3,7 +3,7 @@ from .document import load_file_document
 from .logger import logger
 from langchain_classic.retrievers.contextual_compression import ContextualCompressionRetriever
 from langchain_community.vectorstores import FAISS
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -85,12 +85,14 @@ def get_retriever():
             return retriever
 
 
-def build_chain(retriever=None):
+def build_chain(retriever=None, history: str = "", previous_question: str = ""):
     """
     Builds a Retrieval-Augmented Generation (RAG) chain using the provided retriever.
 
     Args:
         retriever: A retriever object that fetches relevant documents based on a query.
+        history: Recent conversation turns to include in the answer prompt.
+        previous_question: The last user question to help retrieve context for follow-ups.
 
     Returns:
         A RAG chain that processes the context and question, and generates a response.
@@ -100,13 +102,24 @@ def build_chain(retriever=None):
         context = retriever | (
             lambda docs: "\n\n".join(doc.page_content for doc in docs)
         )
+        if previous_question:
+            context = RunnableLambda(
+                lambda question: f"{previous_question}\n{question}"
+            ) | context
     else:
         context = default_context
+
+    question = (
+        RunnableLambda(
+            lambda current: f"Conversation so far:\n{history}\n\nCurrent question: {current}"
+        )
+        if history else RunnablePassthrough()
+    )
 
     chain = (
         {
             "context": context,
-            "question": RunnablePassthrough(),
+            "question": question,
         }
         | prompt
         | llm

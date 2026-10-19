@@ -19,6 +19,15 @@ import { capitalize } from '../../utils/util.ts';
 const Container = styled.main`
   display: flex;
   flex-direction: column;
+  min-height: 0;
+`;
+
+const ConversationNavigation = styled(Navigation)`
+  h4 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 const Info = styled.div`
@@ -41,6 +50,7 @@ const ScrollableContainer = styled.div`
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  min-height: 0;
   height: 60vh;
   overflow-y: auto;
   scroll-behavior: smooth;
@@ -49,6 +59,10 @@ const ScrollableContainer = styled.div`
   & > *:first-child {
     margin-top: 8px;
   }
+`;
+
+const Composer = styled.div`
+  padding: 1rem;
 `;
 
 export const StyledModelWrapper = styled.div<{ $hasMargin?: boolean }>`
@@ -111,9 +125,11 @@ const Conversation: FC = () => {
   return (
     <Container data-testid='conversation-container'>
       {selectedConversationTitle ? (
-        <Navigation>
-          <h4>{capitalize(selectedConversationTitle)}</h4>
-        </Navigation>
+        <ConversationNavigation>
+          <h4 title={selectedConversationTitle}>
+            {capitalize(selectedConversationTitle)}
+          </h4>
+        </ConversationNavigation>
       ) : null}
 
       {!selectedConversationId ? (
@@ -121,31 +137,39 @@ const Conversation: FC = () => {
           <Textarea rows={2} setModelName={setModelName} />
         </Info>
       ) : (
-        <ScrollableContainer ref={scrollViewport}>
-          {selectedConversation?.messages.map((message, index) => (
-            <ConversationMessage
-              key={index}
-              date={message.time * 1000}
-              human={message.role === MessageRole.User}
-              message={message.content}
-            />
-          ))}
-          {isGenerating && (
-            <ConversationMessage
-              date={Date.now()}
-              human={false}
-              message={onGoingResult}
-              isGenerating={isGenerating}
-            />
-          )}
-          {responseStatus && (
-            <StyledModelWrapper $hasMargin={true}>
-              <StyledModel href={LLM_MODEL_URL} target='_blank'>
-                {modelName}
-              </StyledModel>
-            </StyledModelWrapper>
-          )}
-        </ScrollableContainer>
+        <>
+          <ScrollableContainer ref={scrollViewport}>
+            {selectedConversation?.messages.map((message, index) => (
+              <ConversationMessage
+                key={index}
+                date={message.time * 1000}
+                human={message.role === MessageRole.User}
+                message={message.content}
+              />
+            ))}
+            {isGenerating && (
+              <ConversationMessage
+                date={
+                  (selectedConversation?.messages.slice(-1)[0]?.time ?? 0) *
+                  1000
+                }
+                human={false}
+                message={onGoingResult}
+                isGenerating={isGenerating}
+              />
+            )}
+            {responseStatus && (
+              <StyledModelWrapper $hasMargin={true}>
+                <StyledModel href={LLM_MODEL_URL} target='_blank'>
+                  {modelName}
+                </StyledModel>
+              </StyledModelWrapper>
+            )}
+          </ScrollableContainer>
+          <Composer>
+            <Textarea rows={2} setModelName={setModelName} showIntro={false} />
+          </Composer>
+        </>
       )}
     </Container>
   );

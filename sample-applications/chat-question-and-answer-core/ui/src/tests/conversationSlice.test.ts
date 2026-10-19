@@ -4,7 +4,9 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { it, expect, describe, vi, afterEach, beforeEach } from 'vitest';
 import { waitFor } from '@testing-library/react';
+import { fetchEventSource } from '@microsoft/fetch-event-source';
 
+import appStore from '../redux/store.ts';
 import conversationReducer, {
   logout,
   setOnGoingResult,
@@ -19,6 +21,7 @@ import conversationReducer, {
   removeFile,
   removeAllFiles,
   uploadFile,
+  doConversation,
 } from '../redux/conversation/conversationSlice.ts';
 import {
   ConversationReducer,
@@ -31,10 +34,13 @@ import {
   uuidv4,
 } from '../utils/util.ts';
 
+vi.mock('@microsoft/fetch-event-source', () => ({ fetchEventSource: vi.fn() }));
+
 vi.mock('../utils/util.ts', () => ({
   uuidv4: vi.fn(),
   getCurrentTimeStamp: vi.fn(),
   removeLastTagIfPresent: vi.fn(),
+  checkHealth: vi.fn().mockResolvedValue({ status: 200 }),
 }));
 
 const userPrompt: Message = {
@@ -344,6 +350,59 @@ describe('conversationSlice test suite', () => {
         userPrompt,
       );
     });
+  });
+
+  it('should send only nonempty selected conversation history with a follow-up', () => {
+    appStore.dispatch(logout());
+    appStore.dispatch(setIsGenerating(false));
+    appStore.dispatch(
+      createNewConversation({
+        title: 'M262',
+        id: 'test-uuid',
+        message: { ...userPrompt, content: 'What is the M262?' },
+      }),
+    );
+    appStore.dispatch(setSelectedConversationId('test-uuid'));
+    appStore.dispatch(
+      addMessageToMessages({
+        role: MessageRole.Assistant,
+        content: 'A logic controller.',
+        time: 101,
+        conversationId: 'test-uuid',
+      }),
+    );
+    appStore.dispatch(
+      addMessageToMessages({
+        role: MessageRole.Assistant,
+        content: '',
+        time: 102,
+        conversationId: 'test-uuid',
+      }),
+    );
+
+    doConversation({
+      userPrompt: {
+        ...userPrompt,
+        content: 'What about its interfaces?',
+        conversationId: 'test-uuid',
+      },
+    });
+
+    expect(fetchEventSource).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: JSON.stringify({
+          input: 'What about its interfaces?',
+          stream: true,
+          history: [
+            { role: MessageRole.User, content: 'What is the M262?' },
+            { role: MessageRole.Assistant, content: 'A logic controller.' },
+          ],
+        }),
+      }),
+    );
+    appStore.dispatch(logout());
+    appStore.dispatch(setIsGenerating(false));
   });
 
   it('should handle uploadFile.fulfilled', () => {

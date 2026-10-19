@@ -6,8 +6,8 @@ from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from http import HTTPStatus
-from pydantic import BaseModel
-from typing import Annotated
+from pydantic import BaseModel, Field
+from typing import Annotated, Literal
 from .config import config
 from .logger import logger
 from .chain import (
@@ -33,6 +33,11 @@ app.add_middleware(
 )
 
 
+class ChatHistoryMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=1500)
+
+
 class ChatRequest(BaseModel):
     '''
     Represents a chat request containing the input question and options for response type.
@@ -41,9 +46,11 @@ class ChatRequest(BaseModel):
     Attributes:
         input (str): The input question text to be processed.
         stream (bool): Flag indicating whether to return the response as a stream or not. Defaults to True.
+        history (list[ChatHistoryMessage]): Recent conversation messages, oldest first.
     '''
     input: str
     stream: bool = True
+    history: list[ChatHistoryMessage] = Field(default_factory=list, max_length=6)
 
 
 # Conditionally include OpenVINO routes
@@ -272,7 +279,15 @@ async def query_chat(request: ChatRequest):
 
     retriever = get_retriever()
 
-    rag_chain = build_chain(retriever)
+    history = "\n".join(
+        f"{message.role.capitalize()}: {message.content}"
+        for message in request.history
+    )
+    previous_question = next(
+        (message.content for message in reversed(request.history) if message.role == "user"),
+        "",
+    )
+    rag_chain = build_chain(retriever, history=history, previous_question=previous_question)
 
     if request.stream == False:
         response = rag_chain.invoke(request.input)

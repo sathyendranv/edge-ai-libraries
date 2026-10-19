@@ -67,6 +67,16 @@ const StyledButton = styled(Button)`
   --cds-layout-size-height-local: 1.8rem;
   border-radius: 0.5rem;
   font-size: 1rem;
+
+  @media (max-width: 640px) {
+    min-inline-size: 2.5rem;
+    padding-inline: 0.5rem;
+    font-size: 0;
+
+    & > ${Icon} {
+      margin-right: 0;
+    }
+  }
 `;
 
 const Navbar: FC = () => {
@@ -93,6 +103,8 @@ const Navbar: FC = () => {
               onClick={handleNewConversation}
               disabled={isGenerating}
               data-testid='ask-question-button'
+              aria-label={t('askQuestion')}
+              title={t('askQuestion')}
             >
               <Icon style={{ paddingBottom: '1px' }}>+</Icon>
               {t('askQuestion')}
@@ -103,6 +115,8 @@ const Navbar: FC = () => {
             onClick={openDrawer}
             disabled={isGenerating}
             data-testid='manage-context-button'
+            aria-label={t('manageContext')}
+            title={t('manageContext')}
           >
             <Icon>
               <Document />

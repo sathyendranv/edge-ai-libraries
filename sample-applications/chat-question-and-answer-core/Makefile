@@ -205,17 +205,32 @@ deploy:
 			export BACKEND_TAG="$${BACKEND_TAG:-$(DEFAULT_OLLAMA_TAG)}"; \
 			export UI_TAG="$${UI_TAG:-$(DEFAULT_UI_TAG)}"; \
 			export REGISTRY="$${REGISTRY:-$(DEFAULT_REGISTRY)}"; \
-			bash -c "source scripts/setup_env.sh -b ollama && docker compose -f docker/compose.yaml up -d"; \
+			bash -c "source scripts/setup_env.sh -b ollama && docker compose -f docker/compose.yaml up -d" || exit 1; \
 		elif [ "$(DEVICE_UPPER)" = "GPU" ]; then \
 			export BACKEND_TAG="$${BACKEND_TAG:-$(DEFAULT_GPU_TAG)}"; \
 			export UI_TAG="$${UI_TAG:-$(DEFAULT_UI_TAG)}"; \
 			export REGISTRY="$${REGISTRY:-$(DEFAULT_REGISTRY)}"; \
-			bash -c "source scripts/setup_env.sh -d gpu && docker compose -f docker/compose.yaml up -d"; \
+			bash -c "source scripts/setup_env.sh -d gpu && docker compose -f docker/compose.yaml up -d" || exit 1; \
 		else \
 			export BACKEND_TAG="$${BACKEND_TAG:-$(DEFAULT_BACKEND_TAG)}"; \
 			export UI_TAG="$${UI_TAG:-$(DEFAULT_UI_TAG)}"; \
 			export REGISTRY="$${REGISTRY:-$(DEFAULT_REGISTRY)}"; \
-			bash -c "source scripts/setup_env.sh && docker compose -f docker/compose.yaml up -d"; \
+			bash -c "source scripts/setup_env.sh && docker compose -f docker/compose.yaml up -d" || exit 1; \
+		fi; \
+		if [ -d SE ]; then \
+			HOST_IP=$$(ip route get 1 | awk '{print $$7}'); \
+			echo "→ Waiting for the Chat Q&A API to load SE PDFs..."; \
+			for attempt in {1..120}; do \
+				if curl --fail --silent --max-time 5 --output /dev/null "http://$${HOST_IP}:8102/v1/chatqna/health"; then \
+					break; \
+				fi; \
+				if [ "$$attempt" -eq 120 ]; then \
+					echo "❌ Chat Q&A API did not become ready; SE PDFs were not loaded." >&2; \
+					exit 1; \
+				fi; \
+				sleep 5; \
+			done; \
+			python3 scripts/ingest_pdfs.py --api-url "http://$${HOST_IP}:8102/v1/chatqna" || exit 1; \
 		fi; \
 		echo ""; \
 		echo "✅ Deployment complete!"; \
@@ -268,11 +283,25 @@ deploy-build:
 				echo ""; \
 				echo "→ Building and deploying..."; \
 				if [ "$(BACKEND_UPPER)" = "OLLAMA" ]; then \
-					source scripts/setup_env.sh -b ollama && docker compose -f docker/compose.yaml up -d --build; \
+					source scripts/setup_env.sh -b ollama && docker compose -f docker/compose.yaml up -d --build || exit 1; \
 				elif [ "$(DEVICE_UPPER)" = "GPU" ]; then \
-					source scripts/setup_env.sh -d gpu && docker compose -f docker/compose.yaml up -d --build; \
+					source scripts/setup_env.sh -d gpu && docker compose -f docker/compose.yaml up -d --build || exit 1; \
 				else \
-					source scripts/setup_env.sh && docker compose -f docker/compose.yaml up -d --build; \
+					source scripts/setup_env.sh && docker compose -f docker/compose.yaml up -d --build || exit 1; \
+				fi; \
+				if [ -d SE ]; then \
+					echo "→ Waiting for the Chat Q&A API to load SE PDFs..."; \
+					for attempt in {1..120}; do \
+						if curl --fail --silent --max-time 5 --output /dev/null "http://$${HOST_IP}:8102/v1/chatqna/health"; then \
+							break; \
+						fi; \
+						if [ "$$attempt" -eq 120 ]; then \
+							echo "❌ Chat Q&A API did not become ready; SE PDFs were not loaded." >&2; \
+							exit 1; \
+						fi; \
+						sleep 5; \
+					done; \
+					python3 scripts/ingest_pdfs.py --api-url "http://$${HOST_IP}:8102/v1/chatqna" || exit 1; \
 				fi; \
 				echo ""; \
 				echo "✅ Deployment complete!"; \

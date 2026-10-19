@@ -9,7 +9,10 @@ import { I18nextProvider } from 'react-i18next';
 import { configureStore } from '@reduxjs/toolkit';
 
 import Textarea from '../components/Textarea/Textarea.tsx';
-import conversationReducer from '../redux/conversation/conversationSlice.ts';
+import conversationReducer, {
+  doConversation,
+} from '../redux/conversation/conversationSlice.ts';
+import { MessageRole } from '../redux/conversation/conversation.ts';
 import i18n from '../utils/i18n';
 import {
   notify,
@@ -120,6 +123,23 @@ describe('Textarea Component test suite', () => {
     fireEvent.click(button);
 
     expect(textarea).toHaveValue('');
+  });
+
+  it('should submit follow-up questions to the selected conversation', () => {
+    renderComponent({ selectedConversationId: 'conversation-1' });
+
+    fireEvent.change(screen.getByTestId('prompt-textarea'), {
+      target: { value: 'What about the M262?' },
+    });
+    fireEvent.click(screen.getByTestId('submit-prompt'));
+
+    expect(doConversation).toHaveBeenCalledWith({
+      userPrompt: expect.objectContaining({
+        role: MessageRole.User,
+        content: 'What about the M262?',
+        conversationId: 'conversation-1',
+      }),
+    });
   });
 
   it('should submit the form and clear the message when Enter key is pressed without Shift key', () => {

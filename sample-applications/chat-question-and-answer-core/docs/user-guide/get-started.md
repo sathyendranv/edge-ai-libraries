@@ -153,6 +153,26 @@ By following this guide, you will learn how to:
 
    - Create and manage context by adding documents (pdf, docx, etc. Note: Web links are not supported for the Core version of the sample application. Note: There are restrictions on the max size of the document allowed.)
    - Start Q&A session with the created context.
+   - Continue asking follow-up questions in the same chat, or use **Ask a question** to start another conversation.
+
+9. **Load a local PDF collection (optional)**:
+
+   When deploying with `make deploy` or `make deploy-build`, the application waits for the API to be ready and automatically loads PDFs from the local `SE/` directory when it exists. The host needs `python3` with the project's `requests` dependency and `curl` for this step. The loader recursively finds PDFs in `SE/Datasheets` and `SE/Manuals`, and skips files already indexed.
+
+   If you start the application with Docker Compose directly, or need to rerun ingestion, run the loader from the application directory. Use the gateway address exported by `source scripts/setup_env.sh`:
+
+   ```bash
+   python3 scripts/ingest_pdfs.py --api-url "http://${HOST_IP}:8102/v1/chatqna"
+   ```
+
+   To load just one set, pass its directory:
+
+   ```bash
+   python3 scripts/ingest_pdfs.py SE/Datasheets --api-url "http://${HOST_IP}:8102/v1/chatqna"
+   python3 scripts/ingest_pdfs.py SE/Manuals --api-url "http://${HOST_IP}:8102/v1/chatqna"
+   ```
+
+   The loader sends each PDF to `POST /documents`, skips filenames already returned by `GET /documents`, and reports any failed uploads. Filenames must be unique across the selected directories because the service identifies documents by filename. Both sets share one searchable context; selecting a directory only limits which PDFs are uploaded, not which previously indexed PDFs are searched. PDFs must contain extractable text; image-only scans require OCR before ingestion. The index is held in memory, so rerun a deployment command or the loader after the backend restarts. Keep private PDFs on a trusted network when selecting a remote gateway. Refresh the web UI after loading files to update **Manage Context**, then ask questions in the chat.
 
 ## Advanced Setup Options
 

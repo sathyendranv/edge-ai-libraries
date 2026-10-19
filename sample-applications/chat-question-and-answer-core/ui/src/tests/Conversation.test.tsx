@@ -106,6 +106,8 @@ describe('Conversation Component test suite', () => {
     renderComponent(initialState);
 
     expect(screen.getByText('Test Conversation')).toBeInTheDocument();
+    expect(screen.getByTestId('prompt-textarea')).toBeInTheDocument();
+    expect(screen.queryByTestId('textarea-intro')).not.toBeInTheDocument();
   });
 
   it('should display messages if selectedConversationId is present', () => {

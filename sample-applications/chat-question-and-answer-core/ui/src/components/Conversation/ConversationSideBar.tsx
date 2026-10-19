@@ -21,6 +21,11 @@ const SidebarContainer = styled.aside<{ disabled: boolean }>`
   border-right: 1px solid var(--color-border);
   pointer-events: ${({ disabled }) => (disabled ? 'none' : 'auto')};
   opacity: ${({ disabled }) => (disabled ? 0.5 : 1)};
+
+  @media (max-width: 640px) {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
 `;
 
 export const Navigation = styled.div`
@@ -42,6 +47,18 @@ const ScrollableContainer = styled.div`
   overflow-y: hidden;
   padding: 5px;
   height: 80vh;
+
+  @media (max-width: 640px) {
+    display: flex;
+    flex-grow: 0;
+    height: auto;
+    overflow-x: auto;
+
+    & > * {
+      flex: 0 0 13rem;
+      min-width: 0;
+    }
+  }
 `;
 
 export const StyledIconButton = styled(IconButton)`

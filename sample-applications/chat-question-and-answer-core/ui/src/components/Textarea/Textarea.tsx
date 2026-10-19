@@ -63,15 +63,23 @@ const StyledHeader = styled.h3`
 interface TextareaProps {
   rows?: number;
   setModelName: Dispatch<SetStateAction<string>>;
+  showIntro?: boolean;
 }
 
-const Textarea: FC<TextareaProps> = ({ rows = 1, setModelName }) => {
+const Textarea: FC<TextareaProps> = ({
+  rows = 1,
+  setModelName,
+  showIntro = true,
+}) => {
   const { t } = useTranslation();
   const [prompt, setPrompt] = useState<string>('');
   const [isPromptValid, setIsPromptValid] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { isGenerating, files = [] } =
-    useAppSelector(conversationSelector) || {};
+  const {
+    isGenerating,
+    files = [],
+    selectedConversationId,
+  } = useAppSelector(conversationSelector) || {};
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -107,7 +115,7 @@ const Textarea: FC<TextareaProps> = ({ rows = 1, setModelName }) => {
       role: MessageRole.User,
       content: prompt.trim(),
       time: getCurrentTimeStamp(),
-      conversationId: '',
+      conversationId: selectedConversationId,
     };
 
     setLLMModel();
@@ -142,7 +150,9 @@ const Textarea: FC<TextareaProps> = ({ rows = 1, setModelName }) => {
 
   return (
     <>
-      <StyledHeader data-testid='textarea-intro'>{t('intro')}</StyledHeader>
+      {showIntro && (
+        <StyledHeader data-testid='textarea-intro'>{t('intro')}</StyledHeader>
+      )}
       <TextareaWrapper data-testid='textarea-wrapper'>
         <StyledTextArea
           ref={textareaRef}

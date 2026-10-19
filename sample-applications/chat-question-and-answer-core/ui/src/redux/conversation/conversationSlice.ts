@@ -303,9 +303,31 @@ export const doConversation = (conversationRequest: ConversationRequest) => {
   const { userPrompt } = conversationRequest;
   const { conversationId } = userPrompt;
 
+  const selectedConversation = store
+    .getState()
+    .conversations.conversations.find(
+      (conversation) => conversation.conversationId === conversationId,
+    );
+  const history = selectedConversation?.messages
+    .filter(
+      (message) =>
+        (message.role === MessageRole.User ||
+          message.role === MessageRole.Assistant) &&
+        message.content.trim().length > 0,
+    )
+    .slice(-6)
+    .map((message) => ({
+      role: message.role,
+      content:
+        message.role === MessageRole.Assistant
+          ? message.content.slice(-1500)
+          : message.content.slice(0, 1500),
+    }));
+
   const body = {
     input: userPrompt.content,
     stream: true,
+    ...(history?.length && { history }),
   };
 
   store.dispatch(setIsGenerating(true));

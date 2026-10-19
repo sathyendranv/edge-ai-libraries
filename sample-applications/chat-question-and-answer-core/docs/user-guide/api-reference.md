@@ -207,8 +207,12 @@ Request body:
 
 ```json
 {
-  "input": "What is Retrieval-Augmented Generation?",
-  "stream": true
+  "input": "What interfaces does it have?",
+  "stream": true,
+  "history": [
+    { "role": "user", "content": "What is the Modicon M262?" },
+    { "role": "assistant", "content": "A logic and motion controller." }
+  ]
 }
 ```
 
@@ -218,6 +222,7 @@ Fields:
 - `stream` (boolean, optional, default `true`):
   - `true`: Returns `text/event-stream`.
   - `false`: Returns regular JSON.
+- `history` (array, optional): Up to six preceding messages, oldest first. Each message has a `role` of `user` or `assistant` and nonempty `content` of at most 1,500 characters. The API does not store conversation history; send recent messages again with each follow-up. The previous user question helps document retrieval, and the supplied history informs the answer.
 
 Examples:
 
